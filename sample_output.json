@@ -1,0 +1,35 @@
+[
+  {
+    "instruction": "Output a number between 0 and 1 describing the semantic similarity between the following two sentences:\nSentence 1: A plane is taking off.\nSentence 2: An air plane is taking off.",
+    "input": "",
+    "output": "1.0",
+    "expert": "1.0"
+  },
+  {
+    "instruction": "Output a number between 0 and 1 describing the semantic similarity between the following two sentences:\nSentence 1: A man is playing a large flute.\nSentence 2: A man is playing a flute.",
+    "input": "",
+    "output": "0.76",
+    "expert": "0.8",
+    "notes": "The word 'large' adds specificity but meaning is very similar"
+  },
+  {
+    "instruction": "Output a number between 0 and 1 describing the semantic similarity between the following two sentences:\nSentence 1: Three men are playing chess.\nSentence 2: Two men are playing chess.",
+    "input": "",
+    "output": "0.52",
+    "expert": "0.55",
+    "notes": "Same activity but different number of participants"
+  },
+  {
+    "instruction": "Output a number between 0 and 1 describing the semantic similarity between the following two sentences:\nSentence 1: A man is smoking.\nSentence 2: A man is skating.",
+    "input": "",
+    "output": "0.1",
+    "expert": "0.15",
+    "notes": "Only subject (a man) is shared, completely different actions"
+  },
+  {
+    "instruction": "Output a number between 0 and 1 describing the semantic similarity between the following two sentences:\nSentence 1: The polar bear is sliding on the snow.\nSentence 2: A polar bear is sliding across the snow.",
+    "input": "",
+    "output": "1.0",
+    "expert": "1.0"
+  }
+]
