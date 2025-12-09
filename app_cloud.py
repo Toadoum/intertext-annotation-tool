@@ -46,8 +46,8 @@ def get_config():
         
         if 'gcp_service_account' in st.secrets:
             config['gcp_credentials'] = dict(st.secrets.gcp_service_account)
-    except Exception:
-        pass
+    except Exception as e:
+        st.error(f"Error loading secrets: {e}")
     
     return config
 
@@ -272,14 +272,28 @@ def render_login():
 def connect_backend():
     """Connect to Google Sheets backend."""
     if not GSHEETS_AVAILABLE:
+        st.sidebar.error("❌ gspread not installed")
         return False
     
-    if CONFIG['gcp_credentials'] and CONFIG['spreadsheet_id']:
+    if not CONFIG['gcp_credentials']:
+        st.sidebar.warning("⚠️ No GCP credentials in secrets")
+        return False
+    
+    if not CONFIG['spreadsheet_id']:
+        st.sidebar.warning("⚠️ No spreadsheet_id in secrets")
+        return False
+    
+    try:
         backend = GoogleSheetsBackend()
         if backend.connect(CONFIG['gcp_credentials'], CONFIG['spreadsheet_id']):
             st.session_state.backend = backend
             st.session_state.connected = True
             return True
+        else:
+            st.sidebar.error("❌ Backend connection failed")
+    except Exception as e:
+        st.sidebar.error(f"❌ Connection error: {e}")
+    
     return False
 
 
@@ -699,7 +713,7 @@ def main():
         render_login()
         return
     
-    # Connect backend
+    # Connect backend (try each time if not connected)
     if not st.session_state.connected:
         connect_backend()
     
@@ -711,6 +725,24 @@ def main():
     render_sidebar()
     
     st.markdown('<h1 class="main-header">👥 Team Annotation Tool</h1>', unsafe_allow_html=True)
+    
+    # Show connection debug info if backend not connected
+    if not st.session_state.connected:
+        with st.expander("🔧 Debug: Connection Info"):
+            st.write("**Checking configuration...**")
+            st.write(f"- gspread installed: {GSHEETS_AVAILABLE}")
+            st.write(f"- Spreadsheet ID set: {CONFIG['spreadsheet_id'] is not None}")
+            st.write(f"- GCP credentials set: {CONFIG['gcp_credentials'] is not None}")
+            
+            if CONFIG['gcp_credentials']:
+                st.write(f"- Project ID: {CONFIG['gcp_credentials'].get('project_id', 'MISSING')}")
+                st.write(f"- Client email: {CONFIG['gcp_credentials'].get('client_email', 'MISSING')}")
+                has_key = 'private_key' in CONFIG['gcp_credentials'] and CONFIG['gcp_credentials']['private_key']
+                st.write(f"- Private key present: {has_key}")
+            
+            if st.button("🔄 Retry Connection"):
+                st.session_state.connected = False
+                st.rerun()
     
     tabs = st.tabs(["✏️ Annotate", "📊 Dashboard", "📤 Upload", "💾 Export"])
     
