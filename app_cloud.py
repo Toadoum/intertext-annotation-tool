@@ -178,11 +178,10 @@ class GoogleSheetsBackend:
             st.error(f"Upload failed: {e}")
             return False
     
-    @st.cache_data(ttl=60)
-    def get_data(_self) -> Optional[pd.DataFrame]:
-        """Get dataset (cached for 60 seconds)."""
+    def get_data(self) -> Optional[pd.DataFrame]:
+        """Get dataset from Google Sheets."""
         try:
-            records = _self.data_sheet.get_all_records()
+            records = self.data_sheet.get_all_records()
             if records:
                 return pd.DataFrame(records)
         except Exception as e:
@@ -199,11 +198,10 @@ class GoogleSheetsBackend:
             st.error(f"Save failed: {e}")
             return False
     
-    @st.cache_data(ttl=30)
-    def get_annotations(_self, annotator: str = None) -> pd.DataFrame:
-        """Get annotations (cached for 30 seconds)."""
+    def get_annotations(self, annotator: str = None) -> pd.DataFrame:
+        """Get annotations from Google Sheets."""
         try:
-            records = _self.annotations_sheet.get_all_records()
+            records = self.annotations_sheet.get_all_records()
             df = pd.DataFrame(records) if records else pd.DataFrame()
             
             if annotator and not df.empty and 'annotator' in df.columns:
@@ -608,7 +606,6 @@ def render_upload():
                 with st.spinner("Uploading..."):
                     if st.session_state.backend.upload_data(df):
                         st.success("Uploaded!")
-                        st.session_state.backend.get_data.clear()  # Clear cache
                         st.session_state.data = df
                         st.rerun()
             else:
@@ -625,9 +622,21 @@ def render_sidebar():
     with st.sidebar:
         st.markdown(f"### 👤 {st.session_state.current_user}")
         
-        if st.button("Logout"):
-            st.session_state.authenticated = False
-            st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Refresh"):
+                # Force reload data from Google Sheets
+                if st.session_state.backend:
+                    df = st.session_state.backend.get_data()
+                    if df is not None and not df.empty:
+                        st.session_state.data = df
+                        st.success(f"Loaded {len(df)} items")
+                st.rerun()
+        with col2:
+            if st.button("Logout"):
+                st.session_state.authenticated = False
+                st.session_state.data = None
+                st.rerun()
         
         st.markdown("---")
         
@@ -669,7 +678,12 @@ def render_sidebar():
                 st.rerun()
         
         st.markdown("---")
-        st.caption(f"Connected: {'✅' if st.session_state.connected else '❌'}")
+        
+        # Status info
+        st.caption("**Status**")
+        st.caption(f"Backend: {'✅' if st.session_state.connected else '❌'}")
+        data_status = f"✅ {len(st.session_state.data)} items" if st.session_state.data is not None else "❌ No data"
+        st.caption(f"Data: {data_status}")
 
 
 # =============================================================================
@@ -704,7 +718,14 @@ def main():
         if st.session_state.data is not None:
             render_annotation_ui()
         else:
-            st.info("No data. Go to Upload tab or wait for your team lead to add data.")
+            st.info("📭 No data loaded yet.")
+            st.markdown("""
+            **To get started:**
+            1. Go to **Upload** tab and upload your CSV file, OR
+            2. Click **🔄 Refresh** in the sidebar if data was already uploaded
+            
+            Your CSV should have columns: `sentence1`, `sentence2`, `score`
+            """)
     
     with tabs[1]:
         render_dashboard()
