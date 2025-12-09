@@ -405,7 +405,8 @@ def render_annotation_ui():
         st.markdown(f'<div class="sentence-box">{row["sentence2"]}</div>', unsafe_allow_html=True)
     
     if st.session_state.show_original:
-        st.caption(f"Original score: {row['original_score']}")
+        score_val = row.get('original_score', row.get('score', 'N/A'))
+        st.caption(f"Original score: {score_val}")
     
     st.markdown("---")
     
@@ -558,14 +559,18 @@ def render_export():
     with c2:
         # Instruction format
         json_data = []
-        for idx, row in df.iterrows():
-            if pd.notna(row.get('expert_consensus')):
-                json_data.append({
-                    "instruction": f"Output a number between 0 and 1 describing the semantic similarity between the following two sentences:\nSentence 1: {row['sentence1']}\nSentence 2: {row['sentence2']}",
-                    "input": "",
-                    "output": str(row['original_score']),
-                    "expert": str(round(row['expert_consensus'], 2))
-                })
+        # Handle both 'score' and 'original_score' column names
+        score_col = 'original_score' if 'original_score' in df.columns else 'score'
+        
+        if 'expert_consensus' in df.columns:
+            for idx, row in df.iterrows():
+                if pd.notna(row.get('expert_consensus')):
+                    json_data.append({
+                        "instruction": f"Output a number between 0 and 1 describing the semantic similarity between the following two sentences:\nSentence 1: {row['sentence1']}\nSentence 2: {row['sentence2']}",
+                        "input": "",
+                        "output": str(row.get(score_col, '')),
+                        "expert": str(round(row['expert_consensus'], 2))
+                    })
         
         if json_data:
             st.download_button(
